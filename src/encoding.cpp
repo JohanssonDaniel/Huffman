@@ -5,6 +5,7 @@
 
 #include "encoding.h"
 #include <queue>
+#include <vector>
 // TODO: include any other headers you need
 
 map<int, int> buildFrequencyTable(istream& input) {
@@ -27,14 +28,35 @@ map<int, int> buildFrequencyTable(istream& input) {
     return freqTable;
 }
 HuffmanNode* buildEncodingTree(const map<int, int> &freqTable) {
-    // TODO: implement this function
-    priority_queue<HuffmanNode> priorityQueue;
+    //cout << "Hej" << endl;
+    // TODO: Skriva egen jämförelseoprator
+    priority_queue<HuffmanNode*,vector<HuffmanNode*>,> priorityQueue;
 
     for(auto it = freqTable.begin(); it != freqTable.end(); ++it){
-        HuffmanNode x = HuffmanNode(it->first,it->second);
+        HuffmanNode* x = new HuffmanNode(it->first,it->second, nullptr, nullptr);
         priorityQueue.push(x);
     }
-    return nullptr;
+
+    int x = priorityQueue.size();
+    for(int i = 0; i < x; ++i){
+        cout << "hej" << endl;
+        cout << priorityQueue.top()->toString() << endl;
+        priorityQueue.pop();
+    }
+
+    while(priorityQueue.size() != 1){
+        HuffmanNode* left = priorityQueue.top();
+        priorityQueue.pop();
+        HuffmanNode* right = priorityQueue.top();
+        priorityQueue.pop();
+
+        int sum_of_left_and_right = left->count + right->count;
+        HuffmanNode* node = new HuffmanNode(NOT_A_CHAR, sum_of_left_and_right, left, right);
+
+        priorityQueue.push(node);
+
+    }
+    return priorityQueue.top();
 }
 
 map<int, string> buildEncodingMap(HuffmanNode* encodingTree) {
