@@ -49,14 +49,6 @@ HuffmanNode* buildEncodingTree(const map<int, int> &freqTable) {
         HuffmanNode* x = new HuffmanNode(it->first,it->second, nullptr, nullptr);
         priorityQueue.push(x);
     }
-/*
-    int x = priorityQueue.size();
-    for(int i = 0; i < x; ++i){
-        cout << "hej" << endl;
-        cout << priorityQueue.top()->toString() << endl;
-        priorityQueue.pop();
-    }*/
-
     while(priorityQueue.size() != 1){
         HuffmanNode* left = priorityQueue.top();
         priorityQueue.pop();
@@ -70,11 +62,22 @@ HuffmanNode* buildEncodingTree(const map<int, int> &freqTable) {
     }
     return priorityQueue.top();
 }
-
+void encodingHelper(HuffmanNode* encodingTree, string code, map<int, string> encodingMap){
+    if(encodingTree->one == nullptr && encodingTree->zero == nullptr){
+        encodingMap.insert(make_pair(encodingTree->character,code));
+    }else{
+        code += encodingTree->count;
+        enco1dingHelper(encodingTree->zero,code,encodingMap);
+        encodingHelper(encodingTree->one,code,encodingMap);
+    }
+}
 map<int, string> buildEncodingMap(HuffmanNode* encodingTree) {
     // TODO: implement this function
     map<int, string> encodingMap;
+    string code = "";
+    encodingHelper(encodingTree, code, encodingMap);
     return encodingMap;
+
 }
 
 void encodeData(istream& input, const map<int, string> &encodingMap, obitstream& output) {
