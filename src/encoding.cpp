@@ -19,30 +19,43 @@ map<int, int> buildFrequencyTable(istream& input) {
         if (freqTable.count(tempByte) == 1){
             //Öka dess "förekomst" med 1
             freqTable.at(tempByte) += 1;
+        }else if(freqTable.count(PSEUDO_EOF) == 1){
+            //Öka dess "förekomst" med 1
+            freqTable.at(tempByte) += 1;
         }
         else{
             //Annars skapa en ny nyckel med ett som startvärde
-            freqTable.insert(make_pair(tempByte,1));
+            if(tempByte == -1){
+                freqTable.insert(make_pair(PSEUDO_EOF,1));
+            }else{
+                freqTable.insert(make_pair(tempByte,1));
+            }
         }
     }
     return freqTable;
 }
+
+class lessThanByFrequency{
+    public:
+    bool operator()(HuffmanNode* lhs, HuffmanNode* rhs){
+        return lhs->count > rhs->count;
+    }
+};
 HuffmanNode* buildEncodingTree(const map<int, int> &freqTable) {
-    //cout << "Hej" << endl;
     // TODO: Skriva egen jämförelseoprator
-    priority_queue<HuffmanNode*,vector<HuffmanNode*>,> priorityQueue;
+    priority_queue<HuffmanNode*,vector<HuffmanNode*>,lessThanByFrequency> priorityQueue;
 
     for(auto it = freqTable.begin(); it != freqTable.end(); ++it){
         HuffmanNode* x = new HuffmanNode(it->first,it->second, nullptr, nullptr);
         priorityQueue.push(x);
     }
-
+/*
     int x = priorityQueue.size();
     for(int i = 0; i < x; ++i){
         cout << "hej" << endl;
         cout << priorityQueue.top()->toString() << endl;
         priorityQueue.pop();
-    }
+    }*/
 
     while(priorityQueue.size() != 1){
         HuffmanNode* left = priorityQueue.top();
@@ -54,7 +67,6 @@ HuffmanNode* buildEncodingTree(const map<int, int> &freqTable) {
         HuffmanNode* node = new HuffmanNode(NOT_A_CHAR, sum_of_left_and_right, left, right);
 
         priorityQueue.push(node);
-
     }
     return priorityQueue.top();
 }
