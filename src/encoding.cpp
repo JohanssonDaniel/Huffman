@@ -6,10 +6,10 @@
 #include "encoding.h"
 #include <queue>
 #include <vector>
+#include <strlib.h>
 // TODO: include any other headers you need
 
 map<int, int> buildFrequencyTable(istream& input) {
-    // TODO: implement this function
     map<int, int> freqTable;
     //Medan input har data
     while(input){
@@ -36,25 +36,27 @@ map<int, int> buildFrequencyTable(istream& input) {
 }
 
 class lessThanByFrequency{
-    public:
+public:
     bool operator()(HuffmanNode* lhs, HuffmanNode* rhs){
         return lhs->count > rhs->count;
     }
 };
 HuffmanNode* buildEncodingTree(const map<int, int> &freqTable) {
-    // TODO: Skriva egen jämförelseoprator
+    //Prioritetskö som sorterar efter frekvens, lägst hamnar först
     priority_queue<HuffmanNode*,vector<HuffmanNode*>,lessThanByFrequency> priorityQueue;
-
+    //Skapa en ny HuffmanNode för varje element i frekvenslistan
     for(auto it = freqTable.begin(); it != freqTable.end(); ++it){
         HuffmanNode* x = new HuffmanNode(it->first,it->second, nullptr, nullptr);
         priorityQueue.push(x);
     }
+
     while(priorityQueue.size() != 1){
+        //Ta ut de två lägsta elementen i priorityQueue
         HuffmanNode* left = priorityQueue.top();
         priorityQueue.pop();
         HuffmanNode* right = priorityQueue.top();
         priorityQueue.pop();
-
+        //Summera deras frekvenser och skapa en ny HuffmanNode med de båda som vänster/höger subträd
         int sum_of_left_and_right = left->count + right->count;
         HuffmanNode* node = new HuffmanNode(NOT_A_CHAR, sum_of_left_and_right, left, right);
 
@@ -62,17 +64,23 @@ HuffmanNode* buildEncodingTree(const map<int, int> &freqTable) {
     }
     return priorityQueue.top();
 }
-void encodingHelper(HuffmanNode* encodingTree, string code, map<int, string> encodingMap){
-    if(encodingTree->one == nullptr && encodingTree->zero == nullptr){
+void encodingHelper(HuffmanNode* encodingTree, string code, map<int, string>& encodingMap){
+    //Noden är ett löv, lägg till den i encoding map
+    if(encodingTree->isLeaf()){
         encodingMap.insert(make_pair(encodingTree->character,code));
     }else{
-        code += encodingTree->count;
-        enco1dingHelper(encodingTree->zero,code,encodingMap);
+        //Annars lägg till 0 till kodningen och traversera vänster
+        code += "0";
+        encodingHelper(encodingTree->zero,code,encodingMap);
+        //Ta bort förra nodens tecken, lägg till 1 och traversera höger
+        code = code.substr(0, code.size()-1);;
+        code += "1";
         encodingHelper(encodingTree->one,code,encodingMap);
     }
 }
+
 map<int, string> buildEncodingMap(HuffmanNode* encodingTree) {
-    // TODO: implement this function
+
     map<int, string> encodingMap;
     string code = "";
     encodingHelper(encodingTree, code, encodingMap);
@@ -81,15 +89,57 @@ map<int, string> buildEncodingMap(HuffmanNode* encodingTree) {
 }
 
 void encodeData(istream& input, const map<int, string> &encodingMap, obitstream& output) {
-    // TODO: implement this function
-}
+    while(input){
+        int tempByte = input.get();
+        string tempCode;
+        if(tempByte == -1){
+            tempCode = encodingMap.at(PSEUDO_EOF);
+        }else{
+            tempCode = encodingMap.at(tempByte);
+        }
 
+        while(tempCode.size() > 0){
+            int tempBit = stringToInteger(string(1,tempCode.front()));
+            output.writeBit(tempBit);
+            tempCode.erase(tempCode.begin());
+        }
+    }
+}
+void decodeDataHelper(ibitstream& input, HuffmanNode* encodingTree, ostream& output){
+    if(encodingTree->isLeaf()){
+        output.put(encodingTree->character);
+    }else{
+        int tempBit = input.readBit();
+        if(tempBit == 0){
+            decodeDataHelper(input, encodingTree->zero, output);
+        }else if(tempBit == 1){
+            decodeDataHelper(input, encodingTree->one, output);
+        }
+    }
+}
 void decodeData(ibitstream& input, HuffmanNode* encodingTree, ostream& output) {
-    // TODO: implement this function
+    while(input){
+        decodeDataHelper(input, encodingTree, output);
+    }
 }
 
 void compress(istream& input, obitstream& output) {
     // TODO: implement this function
+    map<int, int> freqTable = buildFrequencyTable(input);
+    HuffmanNode* priorityTree = buildEncodingTree(freqTable);
+    map<int, string> encodingMap = buildEncodingMap(priorityTree);
+    output.put('{');
+    for(map<int, int>::iterator it = freqTable.begin(); it != freqTable.end(); ++it){
+        char first = it->first;
+        char second = it->second;
+        output.put(first);
+        output.put(':');
+        output.put(second);
+        output.put(',');
+        output.put(' ');
+    }
+    output.put('}');
+
 }
 
 void decompress(ibitstream& input, ostream& output) {
