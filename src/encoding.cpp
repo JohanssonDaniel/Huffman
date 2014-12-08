@@ -159,6 +159,17 @@ void compress(istream& input, obitstream& output) {
 
 void decompress(ibitstream& input, ostream& output) {
     // TODO: implement this function
+    while(true){
+        int tempByte = 0;
+        char tempChar = '';
+        for(int i = 7; i > 0; --i){
+            tempByte += (2**i)*input.readBit();
+        }
+        tempChar = tempByte;
+        if(tempChar == '}'){
+            break;
+        }
+    }
 
 }
 
