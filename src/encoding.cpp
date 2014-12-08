@@ -73,7 +73,7 @@ void encodingHelper(HuffmanNode* encodingTree, string code, map<int, string>& en
         code += "0";
         encodingHelper(encodingTree->zero,code,encodingMap);
         //Ta bort förra nodens tecken, lägg till 1 och traversera höger
-        code = code.substr(0, code.size()-1);;
+        code = code.substr(0, code.size()-1);
         code += "1";
         encodingHelper(encodingTree->one,code,encodingMap);
     }
@@ -122,28 +122,44 @@ void decodeData(ibitstream& input, HuffmanNode* encodingTree, ostream& output) {
         decodeDataHelper(input, encodingTree, output);
     }
 }
-
 void compress(istream& input, obitstream& output) {
     // TODO: implement this function
     map<int, int> freqTable = buildFrequencyTable(input);
     HuffmanNode* priorityTree = buildEncodingTree(freqTable);
     map<int, string> encodingMap = buildEncodingMap(priorityTree);
+
     output.put('{');
     for(map<int, int>::iterator it = freqTable.begin(); it != freqTable.end(); ++it){
-        char first = it->first;
-        char second = it->second;
-        output.put(first);
+        int first = it->first;
+        int second = it->second;
+        string firstString = integerToString(first);
+        while(firstString.size() > 0){
+            char tempFirst = firstString.front();
+            output.put(tempFirst);
+            firstString.erase(firstString.begin());
+        }
         output.put(':');
-        output.put(second);
-        output.put(',');
-        output.put(' ');
+        string secondString = integerToString(second);
+        while(secondString.size() > 0){
+            char tempSecond = secondString.front();
+            output.put(tempSecond);
+            secondString.erase(secondString.begin());
+        }
+        //Iterationen innan slutet för utskrift av kommatecken
+        if(it != --freqTable.end()){
+            output.put(',');
+            output.put(' ');
+        }
     }
     output.put('}');
-
+    input.clear();
+    input.seekg(0, ios::beg);
+    encodeData(input, encodingMap, output);
 }
 
 void decompress(ibitstream& input, ostream& output) {
     // TODO: implement this function
+
 }
 
 void freeTree(HuffmanNode* node) {
