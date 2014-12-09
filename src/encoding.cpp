@@ -7,6 +7,7 @@
 #include <queue>
 #include <vector>
 #include <strlib.h>
+#include <cmath>                            /**pow**/
 // TODO: include any other headers you need
 
 map<int, int> buildFrequencyTable(istream& input) {
@@ -123,7 +124,6 @@ void decodeData(ibitstream& input, HuffmanNode* encodingTree, ostream& output) {
     }
 }
 void compress(istream& input, obitstream& output) {
-    // TODO: implement this function
     map<int, int> freqTable = buildFrequencyTable(input);
     HuffmanNode* priorityTree = buildEncodingTree(freqTable);
     map<int, string> encodingMap = buildEncodingMap(priorityTree);
@@ -157,19 +157,66 @@ void compress(istream& input, obitstream& output) {
     encodeData(input, encodingMap, output);
 }
 
+char buildCharFromByte(ibitstream& input) {
+    int tempByte = 0;
+    char tempChar;
+    for(double i = 0; i <= 7; ++i){
+        tempByte += pow(2.0, i)*input.readBit();
+    }
+    tempChar = tempByte;
+    return tempChar;
+}
+
 void decompress(ibitstream& input, ostream& output) {
-    // TODO: implement this function
+    map<int, int> freqTable;
     while(true){
-        int tempByte = 0;
-        char tempChar = '';
-        for(int i = 7; i > 0; --i){
-            tempByte += (2**i)*input.readBit();
+        bool switchSide = false;
+        int value = 0;
+        string freq;
+
+        char tempChar = buildCharFromByte(input);
+        while(true){
+            //cout << tempChar << endl;
+
+            if (tempChar == '}') {
+                break;
+            } else if (tempChar == ':') {
+                switchSide = true;
+            } else if (tempChar == ' ') {
+                break;
+            } else if (tempChar == ',') {
+                break;
+            }
+
+            if (switchSide) {
+                if (tempChar != ':') {
+                    cout << "switchat" << tempChar << endl;
+                    freq += tempChar;
+                    cout << "freq" << freq << endl;
+                }
+            }
+
+            tempChar = buildCharFromByte(input);
         }
-        tempChar = tempByte;
+
+
         if(tempChar == '}'){
             break;
         }
-    }
+
+    }/*
+    int tempByte = 0;
+    char tempChar;
+    int inp = 0;
+    for(double i = 0; i <= 7; ++i){
+        inp = input.readBit();
+        //cout << inp << endl;
+        tempByte += pow(2.0, i)*inp;
+        //cout << tempByte << endl;
+        tempChar = tempByte;
+        cout << tempChar << endl;
+    }*/
+
 
 }
 
