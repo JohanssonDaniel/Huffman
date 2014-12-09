@@ -91,8 +91,10 @@ map<int, string> buildEncodingMap(HuffmanNode* encodingTree) {
 
 void encodeData(istream& input, const map<int, string> &encodingMap, obitstream& output) {
     while(input){
+        //Ta ut första byten
         int tempByte = input.get();
         string tempCode;
+        //Hämta ut bitsekvensen som hör till bokstaven
         if(tempByte == -1){
             tempCode = encodingMap.at(PSEUDO_EOF);
         }else{
@@ -100,17 +102,23 @@ void encodeData(istream& input, const map<int, string> &encodingMap, obitstream&
         }
 
         while(tempCode.size() > 0){
+            //Ta ut första biten från sekvensen
             int tempBit = stringToInteger(string(1,tempCode.front()));
+            //Skriv ut den till output
             output.writeBit(tempBit);
+            //Ta bort den från sekvensen
             tempCode.erase(tempCode.begin());
         }
     }
 }
 void decodeDataHelper(ibitstream& input, HuffmanNode* encodingTree, ostream& output){
+    //Noden är ett löv, skriv ut värdet
     if(encodingTree->isLeaf()){
         output.put(encodingTree->character);
     }else{
+        //Läs in första biten
         int tempBit = input.readBit();
+        //Traversera vänster/höger träd beroende på biten
         if(tempBit == 0){
             decodeDataHelper(input, encodingTree->zero, output);
         }else if(tempBit == 1){
@@ -124,6 +132,7 @@ void decodeData(ibitstream& input, HuffmanNode* encodingTree, ostream& output) {
     }
 }
 void compress(istream& input, obitstream& output) {
+
     map<int, int> freqTable = buildFrequencyTable(input);
     HuffmanNode* priorityTree = buildEncodingTree(freqTable);
     map<int, string> encodingMap = buildEncodingMap(priorityTree);
@@ -155,6 +164,7 @@ void compress(istream& input, obitstream& output) {
     input.clear();
     input.seekg(0, ios::beg);
     encodeData(input, encodingMap, output);
+    freeTree(priorityTree);
 }
 
 char buildCharFromByte(ibitstream& input) {
@@ -167,59 +177,59 @@ char buildCharFromByte(ibitstream& input) {
     return tempChar;
 }
 
+void decompressHelper(ibitstream& input, map<int, int>& freqTable, string value, string freq, bool switched){
+    //Ta ut första byten och gör den till en char
+    char tempChar = buildCharFromByte(input);
+    //Om slut av par lägg in i freqTable och första rekursera
+    if(tempChar == ','){
+        int intValue = stringToInteger(value);
+        int intFreq = stringToInteger(freq);
+        freqTable.insert(make_pair(intValue,intFreq));
+        decompressHelper(input, freqTable, value, freq, switched);
+    }else if(tempChar == ':'){  //Om semikolon, byt till att bygga frekvensen
+        switched = true;
+        decompressHelper(input, freqTable, value, freq, switched);
+    }else if (tempChar == ' '){ //Reseta värden
+        value = "";
+        freq = "";
+        switched = false;
+        decompressHelper(input, freqTable, value, freq, switched);
+    }else if(tempChar == '{'){  //Om början av tabell, gör inget
+        decompressHelper(input, freqTable, value, freq, switched);
+    }else if(tempChar == '}'){  //Om slutet av tabell, lägg in sista värdet och avsluta loop
+        int intValue = stringToInteger(value);
+        int intFreq = stringToInteger(freq);
+        freqTable.insert(make_pair(intValue,intFreq));
+        return;
+    }
+    else{
+        if(switched){           //Om efter semikolon, öka frekvensen
+            freq += tempChar;
+            decompressHelper(input, freqTable, value, freq, switched);
+        }else{                  //Annars öka värdet
+            value += tempChar;
+            decompressHelper(input, freqTable, value, freq, switched);
+        }
+    }
+}
+
 void decompress(ibitstream& input, ostream& output) {
     map<int, int> freqTable;
-    while(true){
-        bool switchSide = false;
-        int value = 0;
-        string freq;
+    bool switchSide = false;
+    string value = "";
+    string freq = "";
+    decompressHelper(input,freqTable,value,freq,switchSide);
 
-        char tempChar = buildCharFromByte(input);
-        while(true){
-            //cout << tempChar << endl;
-
-            if (tempChar == '}') {
-                break;
-            } else if (tempChar == ':') {
-                switchSide = true;
-            } else if (tempChar == ' ') {
-                break;
-            } else if (tempChar == ',') {
-                break;
-            }
-
-            if (switchSide) {
-                if (tempChar != ':') {
-                    cout << "switchat" << tempChar << endl;
-                    freq += tempChar;
-                    cout << "freq" << freq << endl;
-                }
-            }
-
-            tempChar = buildCharFromByte(input);
-        }
-
-
-        if(tempChar == '}'){
-            break;
-        }
-
-    }/*
-    int tempByte = 0;
-    char tempChar;
-    int inp = 0;
-    for(double i = 0; i <= 7; ++i){
-        inp = input.readBit();
-        //cout << inp << endl;
-        tempByte += pow(2.0, i)*inp;
-        //cout << tempByte << endl;
-        tempChar = tempByte;
-        cout << tempChar << endl;
-    }*/
-
-
+    HuffmanNode* encodingTree = buildEncodingTree(freqTable);
+    decodeData(input,encodingTree,output);
+    freeTree(encodingTree);
 }
 
 void freeTree(HuffmanNode* node) {
     // TODO: implement this function
+    if(node != nullptr){
+        freeTree(node->zero);
+        freeTree(node->one);
+        delete node;
+    }
 }
