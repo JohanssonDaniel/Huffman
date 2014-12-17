@@ -8,7 +8,6 @@
 #include <vector>
 #include <strlib.h>
 #include <cmath>                            /**pow**/
-// TODO: include any other headers you need
 
 map<int, int> buildFrequencyTable(istream& input) {
     map<int, int> freqTable;
@@ -114,7 +113,12 @@ void encodeData(istream& input, const map<int, string> &encodingMap, obitstream&
 void decodeDataHelper(ibitstream& input, HuffmanNode* encodingTree, ostream& output){
     //Noden är ett löv, skriv ut värdet
     if(encodingTree->isLeaf()){
-        output.put(encodingTree->character);
+        int character = encodingTree->character;
+        if(character != PSEUDO_EOF){    //Om vi inte nått slutet
+            output.put(encodingTree->character);
+        }else{
+            input.get();                //Ta bort sista tecknet
+        }
     }else{
         //Läs in första biten
         int tempBit = input.readBit();
@@ -131,12 +135,8 @@ void decodeData(ibitstream& input, HuffmanNode* encodingTree, ostream& output) {
         decodeDataHelper(input, encodingTree, output);
     }
 }
-void compress(istream& input, obitstream& output) {
 
-    map<int, int> freqTable = buildFrequencyTable(input);
-    HuffmanNode* priorityTree = buildEncodingTree(freqTable);
-    map<int, string> encodingMap = buildEncodingMap(priorityTree);
-
+void addBiggerThanByte(map<int, int> freqTable, obitstream& output){
     output.put('{');
     for(map<int, int>::iterator it = freqTable.begin(); it != freqTable.end(); ++it){
         int first = it->first;
@@ -161,6 +161,40 @@ void compress(istream& input, obitstream& output) {
         }
     }
     output.put('}');
+}
+void compress(istream& input, obitstream& output) {
+
+    map<int, int> freqTable = buildFrequencyTable(input);
+    HuffmanNode* priorityTree = buildEncodingTree(freqTable);
+    map<int, string> encodingMap = buildEncodingMap(priorityTree);
+    bool containsBiggerThanByte = false;
+    vector<char> vectorForFreqTable;
+
+    for(map<int,int>::iterator it = freqTable.begin(); it != freqTable.end(); ++it){
+        if(it->first == PSEUDO_EOF){        //Lägg inte till PSEUDO_EOF än
+            break;
+        }
+        else if(!(it->first > PSEUDO_EOF) && !(it->second > PSEUDO_EOF)){   //Om frekvensen och laraktären tar mindre än en byte
+            vectorForFreqTable.push_back(it->first);
+            vectorForFreqTable.push_back(it->second);
+        }else{
+            containsBiggerThanByte = true;
+            break;
+        }
+    }
+    if(containsBiggerThanByte){
+        output.put('1');     //Tal större än en byte finns
+        addBiggerThanByte(freqTable,output);
+
+    }else{
+        output.put('0');    //Inget tal större än en byte
+        int freqTableSize = vectorForFreqTable.size();
+        output.put(freqTableSize);  //tabellens storlek kommer användas för inmatningen
+        for(int i = 0; i < freqTableSize; ++i){
+            int tempNum = vectorForFreqTable.at(i);
+            output.put(tempNum);
+        }
+    }
     input.clear();
     input.seekg(0, ios::beg);
     encodeData(input, encodingMap, output);
@@ -215,18 +249,30 @@ void decompressHelper(ibitstream& input, map<int, int>& freqTable, string value,
 
 void decompress(ibitstream& input, ostream& output) {
     map<int, int> freqTable;
-    bool switchSide = false;
-    string value = "";
-    string freq = "";
-    decompressHelper(input,freqTable,value,freq,switchSide);
-
+    int testForSize = input.get();
+    if(testForSize == '1'){
+        bool switchSide = false;
+        string value = "";
+        string freq = "";
+        decompressHelper(input,freqTable,value,freq,switchSide);
+    }else{
+        int inputSize = input.get();
+        for(int i = 0; i < inputSize; ++i){
+            char tempByte = input.get();
+            int tempValue = tempByte;
+            int tempFreq = input.get();
+            --inputSize;    //Eftersom både frekvensen samt karaktären tagits ut minska inputSize
+            freqTable.insert(make_pair(tempValue,tempFreq));
+        }
+        //Eftersom "endoffile" karaktären inte lades till om vi inte hade tal större än en byte läggs den till här
+        freqTable.insert(make_pair(PSEUDO_EOF,1));
+    }
     HuffmanNode* encodingTree = buildEncodingTree(freqTable);
     decodeData(input,encodingTree,output);
     freeTree(encodingTree);
 }
 
 void freeTree(HuffmanNode* node) {
-    // TODO: implement this function
     if(node != nullptr){
         freeTree(node->zero);
         freeTree(node->one);
