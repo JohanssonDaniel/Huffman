@@ -162,6 +162,11 @@ void addBiggerThanByte(map<int, int> freqTable, obitstream& output){
     }
     output.put('}');
 }
+//Komprimerar headern genom att se om det finns tal i frekvenstabellen som är större än en byte (255)
+//Om så är fallet läggs den in i ouputen på samma sätt med en 1 först i filen för att markera det
+//Annars sätts 0 först i filen samt storleken på frekvenstabellen, alla karaktärer och frekvenser
+//Skrivs till ouput med .put()
+//Exempel för example.txt 08322973983991 EOF lägg inte in eftersom den är större än en byte
 void compress(istream& input, obitstream& output) {
 
     map<int, int> freqTable = buildFrequencyTable(input);
@@ -174,7 +179,7 @@ void compress(istream& input, obitstream& output) {
         if(it->first == PSEUDO_EOF){        //Lägg inte till PSEUDO_EOF än
             break;
         }
-        else if(!(it->first > PSEUDO_EOF) && !(it->second > PSEUDO_EOF)){   //Om frekvensen och laraktären tar mindre än en byte
+        else if(!(it->first > PSEUDO_EOF) && !(it->second > PSEUDO_EOF)){   //Om frekvensen och karaktären tar mindre än en byte
             vectorForFreqTable.push_back(it->first);
             vectorForFreqTable.push_back(it->second);
         }else{
@@ -246,7 +251,8 @@ void decompressHelper(ibitstream& input, map<int, int>& freqTable, string value,
         }
     }
 }
-
+//Om det är 1 i början av filen packas filen upp på samma sätt som förut
+//Annars läses storleken på frekvenstbellen in först och sen byte för byte värden som sedan sätts in i frekvenstabellen
 void decompress(ibitstream& input, ostream& output) {
     map<int, int> freqTable;
     int testForSize = input.get();
